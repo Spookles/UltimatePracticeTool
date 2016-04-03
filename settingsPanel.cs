@@ -70,7 +70,14 @@ namespace ReactieSnelheid_Game
         {
             currSense.Content = sensitivitySlider.Value;
         }
-        
+
+
+        private void sensitivitySlider_Loaded(object sender, RoutedEventArgs e)
+        {
+            sensitivitySlider.Value = Properties.Settings.Default.MouseSens;
+            currSense.Content = sensitivitySlider.Value;
+        }
+
         private void keyOne_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             keyOne.Text = e.Key.ToString();
@@ -85,7 +92,7 @@ namespace ReactieSnelheid_Game
 
         private void backgroundOpaSlider_MouseMove(object sender, MouseEventArgs e)
         {
-            bgOpaSense.Content = Math.Round(backgroundOpaSlider.Value, 2) + "%";
+            bgOpaSense.Content = Math.Round(backgroundOpaSlider.Value * 100) + "%";
         }
 
         private void backgroundOpaSlider_MouseLeave(object sender, MouseEventArgs e)
@@ -98,7 +105,7 @@ namespace ReactieSnelheid_Game
         private void backgroundOpaSlider_Loaded(object sender, RoutedEventArgs e)
         {
             backgroundOpaSlider.Value = Properties.Settings.Default.bgOpaSens;
-            bgOpaSense.Content = Math.Round(backgroundOpaSlider.Value, 2) + "%";
+            bgOpaSense.Content = Math.Round(backgroundOpaSlider.Value * 100) + "%";
         }
 
         //This happens when save is pressed
@@ -111,7 +118,7 @@ namespace ReactieSnelheid_Game
             //If the circle size input is empty it will be the default size 150
             if (string.IsNullOrWhiteSpace(circleSizeInput.Text))
             {
-                circleSize = 150;
+                circleSize = Properties.Settings.Default.HitcircleSize;
                 CircleSizeDone = true;
             }
             else if (int.Parse(circleSizeInput.Text) > 600)
@@ -126,8 +133,8 @@ namespace ReactieSnelheid_Game
 
             if (string.IsNullOrWhiteSpace(resHeight.Text) && string.IsNullOrWhiteSpace(resWidth.Text))
             {
-                resHeightPath = 1080;
-                resWidthPath = 1920;
+                resHeightPath = Properties.Settings.Default.ResolutionHeight;
+                resWidthPath = Properties.Settings.Default.ResolutionWidth;
                 resDone = true;
             }
             else if (string.IsNullOrWhiteSpace(resHeight.Text) || string.IsNullOrWhiteSpace(resWidth.Text))
@@ -152,8 +159,8 @@ namespace ReactieSnelheid_Game
 
             if (string.IsNullOrWhiteSpace(keyOne.Text) || string.IsNullOrWhiteSpace(keyTwo.Text))
             {
-                keyOneInput = "X";
-                keyTwoInput = "Z";
+                keyOneInput = Properties.Settings.Default.CustomKeyOne;
+                keyTwoInput = Properties.Settings.Default.CustomKeyTwo;
                 keysSet = true;
             }
             else
