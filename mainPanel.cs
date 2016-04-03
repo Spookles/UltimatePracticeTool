@@ -60,7 +60,7 @@ namespace ReactieSnelheid_Game
             Grid.Height = resHeightPath;
             LayoutRoot.Background.Opacity = bgOpa;
 
-            StreamResourceInfo cursorImg = System.Windows.Application.GetResourceStream(new Uri("Images/cursor.cur", UriKind.RelativeOrAbsolute));
+            StreamResourceInfo cursorImg = Application.GetResourceStream(new Uri("images/cursor.cur", UriKind.RelativeOrAbsolute));
             Cursor = new Cursor(cursorImg.Stream);
         }
 
