@@ -16,6 +16,8 @@ namespace ReactieSnelheid_Game
 {
     public partial class MainWindow : Window
     {
+        //Score
+        public int score = 0;
         //Dot counter
         public int count = 0;
         //Creating random class
@@ -34,6 +36,11 @@ namespace ReactieSnelheid_Game
         public DateTime timeAtCreate { get; set; }
         //A little work around to check if the window has changed size
         public DispatcherTimer _resizeTimer = new DispatcherTimer { Interval = new TimeSpan(0, 0, 0, 0, 100), IsEnabled = false };
+        public DispatcherTimer DotTimer = new DispatcherTimer { IsEnabled = true };
+        public double dotOpa = 1;
+        public bool mouseEnabled = true;
+        public TimeSpan currentTime;
+
 
         public ImageBrush DotImg = new ImageBrush();
 
@@ -44,21 +51,21 @@ namespace ReactieSnelheid_Game
         public string KeyOnePath = Properties.Settings.Default.CustomKeyOne;
         public string KeyTwoPath = Properties.Settings.Default.CustomKeyTwo;
         public double bgOpa = Properties.Settings.Default.bgOpaSens;
+        public double timerTimeSpan = Properties.Settings.Default.timerTimespan;
 
         //Method launced at start of application
         public MainWindow()
         {
             InitializeComponent();
+
             //Creates an event handler for the timer to do something if the window changed size
             _resizeTimer.Tick += _resizeTimer_Tick;
-
-            playArea.Focus();
 
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
 
             Grid.Width = resWidthPath;
             Grid.Height = resHeightPath;
-            LayoutRoot.Background.Opacity = bgOpa;
+            backgroundImageGrid.Background.Opacity = bgOpa;
 
             StreamResourceInfo cursorImg = Application.GetResourceStream(new Uri("images/cursor.cur", UriKind.RelativeOrAbsolute));
             Cursor = new Cursor(cursorImg.Stream);
@@ -84,6 +91,8 @@ namespace ReactieSnelheid_Game
         //Checks circle size from settings file
         public void updateSettings()
         {
+            timerTimeSpan = Properties.Settings.Default.timerTimespan;
+            DotTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(timerTimeSpan));
             hitcircleSettingPath = Properties.Settings.Default.HitcircleSize;
             circleSize.Content = hitcircleSettingPath + "x" + hitcircleSettingPath;
             resWidthPath = Properties.Settings.Default.ResolutionWidth;
@@ -101,11 +110,11 @@ namespace ReactieSnelheid_Game
             // The farthest left the dot can be
             double minLeft = 0;
             // The farthest right the dot can be without it going off the screen
-            double maxLeft = playArea.ActualWidth - Dot.Width;
+            double maxLeft = spawnArea.ActualWidth - Dot.Width;
             // The farthest up the dot can be
             double minTop = 0;
             // The farthest down the dot can be without it going off the screen
-            double maxTop = playArea.ActualHeight - Dot.Height;
+            double maxTop = spawnArea.ActualHeight - Dot.Height;
 
 
             double left = RandomBetween(minLeft, maxLeft);
@@ -116,36 +125,61 @@ namespace ReactieSnelheid_Game
         //createEllipse method, used for creating new Dots
         public void createEllipse()
         {
-            //Remove previous Dot
-            playArea.Children.Remove(Dot);
+            spawnArea.Children.Remove(Dot);
 
             //Gets time from you PC right now
             timeAtCreate = DateTime.Now;
 
-            //Makes a hitsound play
-            hitSound.Play();
-
             //Create new Dot
             DotImg.ImageSource =
                 new BitmapImage(new Uri(@"Images/hitcircle.png", UriKind.Relative));
-            Dot = new Ellipse() { Width = hitcircleSettingPath, Height = hitcircleSettingPath, Fill = DotImg, Stroke = Brushes.White, StrokeThickness = 6 };
+            Dot = new Ellipse() { Width = hitcircleSettingPath, Height = hitcircleSettingPath, Fill = DotImg, };
+
+            Dot.HorizontalAlignment = HorizontalAlignment.Left;
+            Dot.VerticalAlignment = VerticalAlignment.Top;
 
             //Activates placeDot() method to give the Dot a random location
             placeDot();
 
             //Add Dot to the game area
-            playArea.Children.Add(Dot);
+            spawnArea.Children.Add(Dot);
+        }
+        
+        public void missEllipse()
+        {
+            if (score > 0)
+            {
+                score = score - (score / 8);
+            } else if (score <= 0)
+            {
+                score = 0;
+            }
+            scoreCount.Content = Convert.ToString(score);
+            DotImg.ImageSource =
+            new BitmapImage(new Uri(@"Images/hitcircle-bad.png", UriKind.Relative));
+        }
+
+        public void hitEllipse()
+        {
+            score = score + (200 * count) - (currentTime.Milliseconds / 10);
+            scoreCount.Content = Convert.ToString(score);
+            //Remove previous Dot
+            spawnArea.Children.Remove(Dot);
+
+            //Makes a hitsound play
+            hitSound.Play();
 
             //Makes Dot counter go up by 1
             dotCount.Content = count.ToString();
             count++;
+
         }
 
         //Method to get average time
         public void averageTime()
         {
             //currentTime is now the time it took between creating the Dot and removing the Dot
-            var currentTime = DateTime.Now - timeAtCreate;
+            currentTime = DateTime.Now - timeAtCreate;
 
             //Adds the time it took in a list in Milliseconds
             averageMSList.Add(currentTime.TotalMilliseconds);
@@ -167,22 +201,39 @@ namespace ReactieSnelheid_Game
         //This happens when you press reset
         public void restart()
         {
-            //Gives focus on playArea so the key functions work
-            playArea.Focus();
-            GameStart = false;
-            Startbtn.Visibility = Visibility.Visible;
+            //Gives focus on gameWrapper so the key functions work
+            GameStart = true;
+            GameStartTrueOrFalse();
             //Cleans scores
             averageMS = 0;
             averageS = 0;
             averageMSList.Clear();
             averageSList.Clear();
             count = 0;
+            dotCount.Content = count;
+            score = 0;
+            scoreCount.Content = score;
             //Removes current Dot
-            playArea.Children.Remove(Dot);
+            spawnArea.Children.Remove(Dot);
             reactionTime.Content = "";
             //Checks circle size
             updateSettings();
             changeRes();
+
+        }
+
+        public void GameStartTrueOrFalse()
+        {
+            if (GameStart == false)
+            {
+                pauseScreen.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                pauseScreen.IsEnabled = false;
+                pauseScreen.Visibility = Visibility.Hidden;
+                gameWrapper.Visibility = Visibility.Visible;
+            }
         }
 
         public void changeRes()
@@ -201,57 +252,19 @@ namespace ReactieSnelheid_Game
             }
         }
 
-        //Dot mouse click event handler
-        private void playArea_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (Mouse.DirectlyOver == Dot)
-            {
-                averageTime();
-                createEllipse();
-            }
-        }
-        private void playArea_KeyDown(object sender, KeyEventArgs e)
-        {
-            Key KeyOne = (Key)Enum.Parse(typeof(Key), KeyOnePath);
-            Key KeyTwo = (Key)Enum.Parse(typeof(Key), KeyTwoPath);
-            if (e.Key == KeyOne || e.Key == KeyTwo)
-            {
-                if (Mouse.DirectlyOver == Dot)
-                {
-                    //Before creating the Ellipse you will get the average
-                    averageTime();
-
-                    //Calls createEllipse method creating a new Dot
-                    createEllipse();
-                }
-                else
-                {
-                    DotImg.ImageSource =
-                    new BitmapImage(new Uri(@"Images/hitcircle-bad.png", UriKind.Relative));
-                }
-            }
-            //If the Escape key is pressed the application closes
-            if (e.Key == Key.Escape)
-            {
-                Application.Current.Shutdown();
-            }
-        }
-
         //Start button
-        private void Startbtn_Click(object sender, RoutedEventArgs e)
+        private void Startbtn_MouseDown(object sender, MouseButtonEventArgs e)
         {
             updateSettings();
             changeRes();
+            restart();
             //When the start button is pressed the game will be started
             GameStart = true;
-
             //Calls createEllipse method creating the first Dot
-            if(GameStart == true)
-            {
-                createEllipse();
-                Startbtn.Visibility = Visibility.Hidden;
-            }
-            playArea.Focus();
+            GameStartTrueOrFalse();
+            gameWrapper.Visibility = Visibility.Visible;
+            createEllipse();
+            gameWrapper.Focus();
         }
 
         //The timer for changing window size
@@ -263,35 +276,192 @@ namespace ReactieSnelheid_Game
         }
 
         //Method for if the window size changed
-        private void playArea_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void gameWrapper_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (GameStart == true)
             {
                 _resizeTimer.IsEnabled = true;
                 _resizeTimer.Stop();
                 _resizeTimer.Start();
+                gameWrapper.Visibility = Visibility.Visible;
+                pauseScreen.Visibility = Visibility.Hidden;
             }
             else
             {
+                gameWrapper.Visibility = Visibility.Hidden;
                 _resizeTimer.IsEnabled = false;
             }
         }
         //Reset button
-        private void resetBtn_Click(object sender, RoutedEventArgs e)
+        private void resetBtn_MouseDown(object sender, MouseButtonEventArgs e)
         {
             restart();
+            createEllipse();
         }
         //Opens settings panel
-        private void settingsBtn_Click(object sender, RoutedEventArgs e)
+        private void settingsBtn_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            restart();
+            //restart();
             Settings settingsWindow = new Settings();
             settingsWindow.Show();
         }
-        //If your mouse is over playArea, playArea gets the focus so key functions work
-        private void playArea_MouseEnter(object sender, MouseEventArgs e)
+        //If your mouse is over gameWrapper, gameWrapper gets the focus so key functions work
+        private void gameWrapper_MouseEnter(object sender, MouseEventArgs e)
         {
-            playArea.Focus();
+            gameWrapper.Focus();
+        }
+
+        public bool timerStart = false;
+        private void startTimerBtn_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (timerStart == false)
+            {
+                DotTimer.Start();
+                DotTimer.Tick += DotTimer_Tick;
+                timerStart = true;
+                ImageBrush ib = new ImageBrush();
+                BitmapImage bmi = new BitmapImage(new Uri(@"images/stoptimer.png", UriKind.Relative));
+                ib.ImageSource = bmi;
+                startTimerBtn.Fill = ib;
+            }
+            else
+            {
+                DotTimer.Stop();
+                timerStart = false;
+                ImageBrush ib = new ImageBrush();
+                BitmapImage bmi = new BitmapImage(new Uri(@"images/starttimer.png", UriKind.Relative));
+                ib.ImageSource = bmi;
+                startTimerBtn.Fill = ib;
+            }
+        }
+
+        private void DotTimer_Tick(object sender, EventArgs e)
+        {
+            createEllipse();
+            gameWrapper.Focus();
+        }
+
+        private void quitBtn_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        //Dot mouse click event handler
+        private void LayoutRoot_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (mouseEnabled == true)
+            {
+                if (GameStart == true)
+                {
+                    if (Mouse.DirectlyOver == Dot)
+                    {
+                        if (timerStart == true)
+                        {
+                            averageTime();
+                            hitEllipse();
+                        }
+                        else
+                        {
+                            averageTime();
+                            hitEllipse();
+                            createEllipse();
+                        }
+                    }
+                    else if (Mouse.DirectlyOver == Startbtn || Mouse.DirectlyOver == resetBtn || Mouse.DirectlyOver == startTimerBtn)
+                    {
+
+                    }
+                    else
+                    {
+                        missEllipse();
+                    }
+                }
+            }
+        }
+
+        private void Grid_KeyDown(object sender, KeyEventArgs e)
+        {
+            Key KeyOne = (Key)Enum.Parse(typeof(Key), KeyOnePath);
+            Key KeyTwo = (Key)Enum.Parse(typeof(Key), KeyTwoPath);
+            if (e.Key == KeyOne || e.Key == KeyTwo)
+            {
+                if (Mouse.DirectlyOver == Dot)
+                {
+                    if (timerStart == true)
+                    {
+                        averageTime();
+                        hitEllipse();
+                    }
+                    else
+                    {
+                        averageTime();
+                        hitEllipse();
+                        createEllipse();
+                    }
+                }
+                else if (Mouse.DirectlyOver == gameWrapper)
+                {
+
+                }
+                else
+                {
+                    missEllipse();
+                }
+            }
+
+            //If the Escape key is pressed the application closes
+            if (e.Key == Key.Escape)
+            {
+                if (pauseScreen.Visibility == Visibility.Hidden)
+                {
+                    GameStart = false;
+                    pauseScreen.Visibility = Visibility.Visible;
+                    gameWrapper.Visibility = Visibility.Hidden;
+                    pauseScreen.IsEnabled = true;
+                }
+                else
+                {
+                    GameStart = true;
+                    pauseScreen.Visibility = Visibility.Hidden;
+                    gameWrapper.Visibility = Visibility.Visible;
+                    pauseScreen.IsEnabled = false;
+                }
+            }
+
+            ShortLabel.Tick += ShortLabel_Tick;
+            if (e.Key == Key.M)
+            {
+                if (mouseEnabled == true)
+                {
+                    if (notTimer == false)
+                    {
+                        notTimer = true;
+                        ShortLabel.Start();
+                        NotificationsLbl.Content = "MOUSE BUTTONS TURNED OFF, PRESS ('M') TO TURN BACK ON";
+                        NotificationsLbl.Visibility = Visibility.Visible;
+                        mouseEnabled = false;
+                    }
+                }
+                else
+                {
+                    if (notTimer == false)
+                    {
+                        notTimer = true;
+                        ShortLabel.Start();
+                        NotificationsLbl.Content = "MOUSE BUTTONS TURNED ON, PRESS ('M') TO TURN BACK OFF";
+                        NotificationsLbl.Visibility = Visibility.Visible;
+                        mouseEnabled = true;
+                    }
+                }
+            }
+        }
+        public bool notTimer = false;
+        public DispatcherTimer ShortLabel = new DispatcherTimer { Interval = new TimeSpan(0,0,3)};
+        private void ShortLabel_Tick(object sender, EventArgs e)
+        {
+            notTimer = false;
+            NotificationsLbl.Visibility = Visibility.Hidden;
+            ShortLabel.Stop();
         }
     }
 }
