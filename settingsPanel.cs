@@ -31,11 +31,18 @@ namespace ReactieSnelheid_Game
         public uint sliderPos = 10;
         public double bgSliderPos = 0.25;
 
-        public string keyOneInput;
-        public string keyTwoInput;
+        public string keyOneInput = Properties.Settings.Default.CustomKeyOne;
+        public string keyTwoInput = Properties.Settings.Default.CustomKeyTwo;
         public Settings()
         {
             InitializeComponent();
+
+            circleSizeInput.Text = Convert.ToString(Properties.Settings.Default.HitcircleSize);
+            keyOne.Text = keyOneInput;
+            keyTwo.Text = keyTwoInput;
+            resWidth.Text = Convert.ToString(Properties.Settings.Default.ResolutionWidth);
+            resHeight.Text = Convert.ToString(Properties.Settings.Default.ResolutionHeight);
+            timerTime.Text = Convert.ToString(Properties.Settings.Default.timerTimespan);
         }
 
         //Method to read mouse sens from settings file
@@ -115,6 +122,8 @@ namespace ReactieSnelheid_Game
             bool resDone = false;
             bool FullscreenYN = true;
             bool keysSet = false;
+            bool timerSet = false;
+            double timerTimeSpan = double.Parse(timerTime.Text);
             //If the circle size input is empty it will be the default size 150
             if (string.IsNullOrWhiteSpace(circleSizeInput.Text))
             {
@@ -168,7 +177,19 @@ namespace ReactieSnelheid_Game
                 keysSet = true;
             }
 
-            if (CircleSizeDone == true && resDone == true && keysSet == true)
+            if (string.IsNullOrWhiteSpace(timerTime.Text))
+            {
+                timerTimeSpan = Properties.Settings.Default.timerTimespan;
+                timerSet = true;
+            } else if (int.Parse(timerTime.Text) > 10000)
+            {
+                MessageBox.Show("10 Seconds (10000) is the max!");
+            } else
+            {
+                timerSet = true;
+            }
+
+            if (CircleSizeDone == true && resDone == true && keysSet == true && timerSet == true)
             {
                 this.Close();
             }
@@ -180,6 +201,7 @@ namespace ReactieSnelheid_Game
             Properties.Settings.Default.Fullscreen = FullscreenYN;
             Properties.Settings.Default.CustomKeyOne = keyOneInput;
             Properties.Settings.Default.CustomKeyTwo = keyTwoInput;
+            Properties.Settings.Default.timerTimespan = timerTimeSpan;
 
             //to change the mouse speed. For instance in a button click handler or Form_load
             //SPEED is an integer value between 0 and 20. 10 is the default.
